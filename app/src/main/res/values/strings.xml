@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">TrafficCap001</string>
+    <string name="appid_box_name">Идентификатор приложения</string>
+    <string name="appid_box_text">Сюда идентификатор приложения для захвата</string>
+    <string name="start_button">Запуск VPN</string>
+    <string name="stop_button">Остановка VPN</string>
+    <string name="vpn_forbidden_text">Для работы нужен VPN, сорри.</string>
+    <string name="allow_vpn_text">Разрешите использование VPN</string>
+    <string name="empty_appid_error">Пустой AppId</string>
+    <string name="bad_appid_error">Неправильный AppId</string>
+</resources>
