@@ -6,13 +6,9 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.Manifest;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.pm.PackageManager;
-import android.net.VpnService;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.View;
@@ -20,11 +16,14 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-public class MainActivity extends AppCompatActivity {
+import java.util.Timer;
+
+public class MainActivity extends AppCompatActivity implements MainActivityController {
     Button start_button, stop_button;
     TextView error_view;
     EditText appid_edit;
-    MyVpnService.VpnBinder vpn_binder;
+    MyVpnService.VpnBinder vpn_binder = null;
+    EditText recpacks_edit, sentpacks_edit;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
         stop_button = findViewById(R.id.stop_button);
         error_view = findViewById(R.id.error_msg);
         appid_edit = findViewById(R.id.appid_editor);
+        recpacks_edit = findViewById(R.id.recpacks_edit);
+        sentpacks_edit = findViewById(R.id.sentpacks_edit);
 
         start_button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -54,7 +55,15 @@ public class MainActivity extends AppCompatActivity {
         stop_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-unbindService(vpn_service_connection);
+                unbindService(vpn_service_connection);
+                setButtons(true);
+            }
+        });
+
+        findViewById(R.id.button1337).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                updateCounters();
             }
         });
     }
@@ -92,8 +101,21 @@ unbindService(vpn_service_connection);
     private final ServiceConnection vpn_service_connection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            vpn_binder = (MyVpnService.VpnBinder) service;
-            setButtons(false);
+            ErrorBinder err_binder = (MyVpnService.VpnBinder) service;
+            if (err_binder.getError() == ErrorBinder.Errors.ERROR_OK) {
+                vpn_binder = (MyVpnService.VpnBinder) err_binder;
+                setButtons(false);
+            }
+            else {
+                ErrorBinder.Errors err = err_binder.getError();
+                if (err == ErrorBinder.Errors.ERROR_HOST_UNKNOWN) {
+                    showError(R.string.unknown_host_error);
+                } else if (err == ErrorBinder.Errors.ERROR_NAME_NOT_FOUND) {
+                    showError(R.string.unknown_appid);
+                }
+                unbindService(this);
+            }
+
         }
 
         @Override
@@ -108,5 +130,21 @@ unbindService(vpn_service_connection);
         vpnstart_intent.putExtra(MyVpnService.APP_TO_LISTEN, appid_edit.getText().toString());
         final boolean bind_result = bindService(vpnstart_intent, vpn_service_connection, BIND_AUTO_CREATE | BIND_ABOVE_CLIENT);
         removeError();
+    }
+
+    @Override
+    public void updateCounters() {
+        recpacks_edit.post(new Runnable() {
+            @Override
+            public void run() {
+                recpacks_edit.setText(Integer.toString(vpn_binder.getRecievedPackets()));
+            }
+        });
+        sentpacks_edit.post(new Runnable() {
+            @Override
+            public void run() {
+                sentpacks_edit.setText(Integer.toString(vpn_binder.getSentPackets()));
+            }
+        });
     }
 }

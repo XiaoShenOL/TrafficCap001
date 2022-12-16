@@ -8,4 +8,10 @@
     <string name="allow_vpn_text">Разрешите использование VPN</string>
     <string name="empty_appid_error">Пустой AppId</string>
     <string name="bad_appid_error">Неправильный AppId</string>
+    <string name="unknown_host_error">Неизвестный хост</string>
+    <string name="unknown_appid">Неизвестный идентификатор приложения</string>
+    <string name="recstats_text">Статистика принятого</string>
+    <string name="recpacks_text">Пакетов принято</string>
+    <string name="sentstats_text">Статистика отправленного</string>
+    <string name="sentpacks_text">Пакетов отправлено</string>
 </resources>
