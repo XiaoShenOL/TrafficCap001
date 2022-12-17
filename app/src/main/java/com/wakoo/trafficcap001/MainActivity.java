@@ -112,6 +112,8 @@ public class MainActivity extends AppCompatActivity implements MainActivityContr
                     showError(R.string.unknown_host_error);
                 } else if (err == ErrorBinder.Errors.ERROR_NAME_NOT_FOUND) {
                     showError(R.string.unknown_appid);
+                } else if (err == ErrorBinder.Errors.ERROR_IO_CREATION) {
+                    showError(R.string.cannot_create);
                 }
                 unbindService(this);
             }

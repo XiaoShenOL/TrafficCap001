@@ -2,6 +2,8 @@ package com.wakoo.trafficcap001.tcpip;
 
 import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.net.ProtocolFamily;
+import java.net.StandardProtocolFamily;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -18,8 +20,8 @@ public class IPv4Packet extends IPPacket {
     private final int ttl;
     private final int protocol;
     private final int header_cs;
-    private byte[] srcaddr_bytes;
-    private byte[] dstaddr_bytes;
+    private final byte[] srcaddr_bytes;
+    private final byte[] dstaddr_bytes;
 
     private static final byte OPTION_END = 0;
     private static final byte OPTION_NOOP = 1;
@@ -52,7 +54,8 @@ public class IPv4Packet extends IPPacket {
         header_cs = get16bit(raw, 10);
         byte[] header = new byte[header_length*4];
         System.arraycopy(raw, 0, header, 0, header_length*4);
-        final int computed_cs = computeHeaderCheckSum(header);
+        header[10] = header[11] = 0;
+        final int computed_cs = foldCheckSum(computeCheckSum(0, header));
         if (computed_cs != header_cs) throw new MalformedPacketException("Неверная контрольная сумма заголовка");
         srcaddr_bytes = new byte[4];
         System.arraycopy(raw, 12, srcaddr_bytes, 0, 4);
@@ -74,36 +77,16 @@ public class IPv4Packet extends IPPacket {
                 case OPTION_RECORDROUTE:
                 case OPTION_STRID:
                 case OPTIION_TIMESTAMP:
+                default:
                     option_offset += Byte.toUnsignedInt(raw[option_offset+1]);
                     break;
             }
         }
-        if ((option_offset & 3) != 0) option_offset = (option_offset + 4) & (-4);
+        option_offset = align4(option_offset);
         final int payload_length = total_length - (header_length*4);
-        if (payload_length > (length - (header_length*4))) throw new MalformedPacketException("Что-то странное с длинами пакета, заголовка и данных");
+        if (payload_length != (length - (header_length*4))) throw new MalformedPacketException("Что-то странное с длинами пакета, заголовка и данных");
         payload = new byte[payload_length];
         System.arraycopy(raw, option_offset, payload, 0, payload_length);
-    }
-
-    public static int computeHeaderCheckSum(final byte[] header) {
-        Arrays.fill(header, 10, 12, (byte) 0);
-        int acc = 0;
-        if (header.length % 2 == 0) {
-            for (int i=0;i < header.length;i+=2) {
-                acc += get16bit(header, i);
-            }
-        } else {
-            for (int i=0;i < (header.length-1);i+=2) {
-                acc += get16bit(header, i);
-            }
-            acc += header[header.length-1] << 16;
-        }
-        while ((acc >>> 16) != 0) {
-            final int hi = acc >>> 16;
-            final int lo = acc & 0xFFFF;
-            acc = hi + lo;
-        }
-        return (~acc) & 0xFFFF;
     }
 
     @Override
@@ -122,5 +105,29 @@ public class IPv4Packet extends IPPacket {
         } catch (UnknownHostException unknownHostException) {
             return null;
         }
+    }
+
+    @Override public int getProtocol() {
+        return protocol;
+    }
+
+    @Override
+    public byte[] getPayload() {
+        return payload;
+    }
+
+    @Override
+    public byte[] getPseudoHeader() {
+        final byte ph[] = new byte[12];
+        System.arraycopy(srcaddr_bytes, 0, ph, 0, 4);
+        System.arraycopy(dstaddr_bytes, 0, ph, 4, 4);
+        ph[9] = (byte) protocol;
+        set16bit(ph, payload.length, 10);
+        return ph;
+    }
+
+    @Override
+    public ProtocolFamily getProtocolFamily() {
+        return StandardProtocolFamily.INET;
     }
 }

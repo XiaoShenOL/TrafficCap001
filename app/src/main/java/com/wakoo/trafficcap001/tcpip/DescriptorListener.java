@@ -1,5 +1,7 @@
 package com.wakoo.trafficcap001.tcpip;
 
+import static java.lang.Thread.currentThread;
+
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
@@ -38,7 +40,7 @@ public class DescriptorListener implements Runnable {
     @Override
     public void run() {
         try {
-            while (true) {
+            while (!currentThread().isInterrupted()) {
                 final byte[] raw_packet = new byte[65536];
                 final int in_readed = input.read(raw_packet);
 
@@ -46,6 +48,7 @@ public class DescriptorListener implements Runnable {
                 final IPPacket.IPPacketRawFactory factory = ip_protocols.get(family);
                 if (factory != null) {
                     IPPacket packet = factory.makeFromRaw(raw_packet, in_readed);
+                    tc.enqueuePacket(packet);
                     tc.addRecievedPacket();
                 }
             }

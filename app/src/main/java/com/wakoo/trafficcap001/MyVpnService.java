@@ -1,6 +1,7 @@
 package com.wakoo.trafficcap001;
 
 import static com.wakoo.trafficcap001.ErrorBinder.Errors.ERROR_HOST_UNKNOWN;
+import static com.wakoo.trafficcap001.ErrorBinder.Errors.ERROR_IO_CREATION;
 import static com.wakoo.trafficcap001.ErrorBinder.Errors.ERROR_NAME_NOT_FOUND;
 import static com.wakoo.trafficcap001.ErrorBinder.Errors.ERROR_OK;
 
@@ -62,11 +63,20 @@ public class MyVpnService extends VpnService implements ThreadsCommunicator {
             }
             pfd = builder.establish();
             FileDescriptor fd = pfd.getFileDescriptor();
-            descriptor_thread = new Thread(new DescriptorListener(new FileInputStream(fd), this), "Поток прослушивания дескриптора");
-            connections_listener = new ConnectionsListener(new FileOutputStream(fd), this);
-            connections_thread = new Thread(connections_listener, "Поток прослушивания соединений");
-            descriptor_thread.start();
-            connections_thread.start();
+            try {
+                descriptor_thread = new Thread(new DescriptorListener(new FileInputStream(fd), this), "Поток прослушивания дескриптора");
+                connections_listener = new ConnectionsListener(new FileOutputStream(fd), this);
+                connections_thread = new Thread(connections_listener, "Поток прослушивания соединений");
+                descriptor_thread.start();
+                connections_thread.start();
+            } catch (IOException ioException) {
+                return new ErrorBinder() {
+                    @Override
+                    public Errors getError() {
+                        return ERROR_IO_CREATION;
+                    }
+                };
+            }
             return binder;
         }
     }
